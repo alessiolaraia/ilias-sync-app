@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ILIAS Sync</title>
+  <meta name="description" content="ILIAS-Dateien synchronisieren und an GoodNotes schicken.">
+  <meta name="theme-color" content="#F6F7F9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ILIAS Sync">
+  <meta name="referrer" content="no-referrer">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <img src="icons/icon.svg" alt="" width="28" height="28">
+        <span>ILIAS Sync</span>
+      </div>
+      <button class="icon-btn" id="openSettings" type="button" aria-label="Einstellungen">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M19.4 13.5a7.7 7.7 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.6 7.6 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 2.6-1.5l2.4 1 2-3.4-2-1.6Z"/></svg>
+      </button>
+    </header>
+
+    <main id="main">
+      <!-- Ohne Verbindung -->
+      <section class="card onboarding" id="onboarding" hidden>
+        <h1>Mit deinem Repo verbinden</h1>
+        <p>Diese Seite enthält keine Daten. Sie liest den Stand direkt aus deinem privaten GitHub-Repo und startet dort die Synchronisierung.</p>
+        <ol class="steps">
+          <li>Fine-grained Token für genau dieses Repo anlegen</li>
+          <li>Rechte: <b>Actions</b> lesen &amp; schreiben, <b>Contents</b> lesen</li>
+          <li>Owner, Repo und Token hier eintragen</li>
+        </ol>
+        <button class="btn btn-primary btn-block" type="button" data-open-settings>Verbindung einrichten</button>
+      </section>
+
+      <!-- Hauptansicht -->
+      <div id="dashboard" hidden>
+        <section class="status" id="status" aria-live="polite">
+          <span class="dot" id="statusDot"></span>
+          <div>
+            <p class="status-title" id="statusTitle">Lade Stand …</p>
+            <p class="status-meta" id="statusMeta"></p>
+          </div>
+        </section>
+
+        <div class="primary-action">
+          <button class="btn btn-primary btn-block btn-lg" id="syncAll" type="button">Jetzt synchronisieren</button>
+          <p class="caption">Holt neue Dateien aus allen Fächern und schickt neue PDFs an GoodNotes. Läuft sonst automatisch alle 2 Stunden (6–22 Uhr).</p>
+        </div>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>Fächer</h2>
+            <span class="count" id="courseCount"></span>
+          </div>
+          <ul class="list" id="courses"></ul>
+          <div class="empty" id="coursesEmpty" hidden></div>
+        </section>
+
+        <section class="block">
+          <div class="block-head"><h2>Zuletzt verschickt</h2></div>
+          <ul class="list" id="recent"></ul>
+          <div class="empty" id="recentEmpty" hidden>Noch nichts verschickt. Neue PDFs erscheinen hier, sobald sie an GoodNotes gehen.</div>
+        </section>
+
+        <section class="block">
+          <div class="block-head">
+            <h2>Letzte Läufe</h2>
+            <a class="link" id="allRuns" target="_blank" rel="noopener">Auf GitHub</a>
+          </div>
+          <ul class="list" id="runs"></ul>
+          <div class="empty" id="runsEmpty" hidden>Noch keine Läufe.</div>
+        </section>
+      </div>
+
+      <section class="card error-card" id="loadError" hidden>
+        <h2>Verbindung fehlgeschlagen</h2>
+        <p id="loadErrorText"></p>
+        <div class="row-actions">
+          <button class="btn btn-secondary" type="button" id="retry">Erneut laden</button>
+          <button class="btn btn-ghost" type="button" data-open-settings>Einstellungen</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Bottom-Sheet: Fach -->
+  <dialog class="sheet" id="courseSheet" aria-labelledby="sheetTitle">
+    <div class="sheet-panel">
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <span class="badge" id="sheetShort"></span>
+        <div>
+          <h2 id="sheetTitle"></h2>
+          <p class="status-meta" id="sheetMeta"></p>
+        </div>
+      </div>
+      <div class="sheet-actions">
+        <button class="action" type="button" data-mode="new">
+          <span class="action-title">Neues holen</span>
+          <span class="action-desc">Nur dieses Fach prüfen, neue PDFs an GoodNotes schicken</span>
+        </button>
+        <button class="action" type="button" data-mode="goodnotes-all">
+          <span class="action-title">Alles an GoodNotes schicken</span>
+          <span class="action-desc">Alle PDFs dieses Fachs nochmal an GoodNotes schicken</span>
+        </button>
+        <button class="action" type="button" data-mode="zip">
+          <span class="action-title">Als ZIP an Telegram schicken</span>
+          <span class="action-desc">Alle Dateien des Fachs als ZIP zum Herunterladen aufs Handy</span>
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-block" type="button" data-close>Abbrechen</button>
+    </div>
+  </dialog>
+
+  <!-- Einstellungen -->
+  <dialog class="sheet" id="settingsSheet" aria-labelledby="settingsTitle">
+    <form class="sheet-panel" id="settingsForm" method="dialog">
+      <div class="grabber" aria-hidden="true"></div>
+      <h2 id="settingsTitle">Einstellungen</h2>
+      <p class="caption">Wird nur auf diesem Gerät gespeichert (localStorage).</p>
+      <div class="field-row">
+        <label class="field">
+          <span>Owner</span>
+          <input name="owner" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="dein-github-name" required>
+        </label>
+        <label class="field">
+          <span>Repo</span>
+          <input name="repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ilias-sync" required>
+        </label>
+      </div>
+      <label class="field">
+        <span>Branch</span>
+        <input name="branch" autocomplete="off" autocapitalize="off" spellcheck="false" value="main" required>
+      </label>
+      <label class="field">
+        <span>Fine-grained Personal Access Token</span>
+        <input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
+      </label>
+      <p class="field-help">Nur dieses Repo · Actions: Read and write · Contents: Read-only</p>
+      <p class="test-result" id="testResult" role="status"></p>
+      <div class="row-actions">
+        <button class="btn btn-secondary" type="button" id="testConn">Verbindung testen</button>
+        <button class="btn btn-primary" type="submit" id="saveSettings">Speichern</button>
+      </div>
+      <div class="row-actions split">
+        <button class="btn btn-ghost danger" type="button" id="clearToken">Token löschen</button>
+        <button class="btn btn-ghost" type="button" data-close>Schließen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
