@@ -17,9 +17,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="app.css?v=2">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=2" defer></script>
 </head>
 <body>
   <div class="app">
@@ -146,10 +146,15 @@
         <span>Branch</span>
         <input name="branch" autocomplete="off" autocapitalize="off" spellcheck="false" value="main" required>
       </label>
-      <label class="field">
-        <span>Fine-grained Personal Access Token</span>
-        <input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
-      </label>
+      <div class="field">
+        <label for="tokenInput">Fine-grained Personal Access Token</label>
+        <div class="input-row">
+          <!-- bewusst type="text": iOS schlägt bei Passwortfeldern „starke Passwörter“ vor und blockiert das Einfügen -->
+          <input id="tokenInput" name="token" type="text" inputmode="text" autocomplete="off" autocorrect="off"
+                 autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="github_pat_…" required>
+          <button class="btn btn-secondary" type="button" id="pasteToken">Einfügen</button>
+        </div>
+      </div>
       <p class="field-help">Nur dieses Repo · Actions: Read and write · Contents: Read-only</p>
       <p class="test-result" id="testResult" role="status"></p>
       <div class="row-actions">

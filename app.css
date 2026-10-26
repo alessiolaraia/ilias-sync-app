@@ -231,7 +231,10 @@ button.row:hover { background: #FAFBFC; }
 
 /* Formular */
 .field { display: grid; gap: 6px; margin-bottom: var(--s2); min-width: 0; }
-.field span { font-size: 13px; font-weight: 500; }
+.field > span, .field > label { font-size: 13px; font-weight: 500; }
+.input-row { display: flex; gap: var(--s1); }
+.input-row input { flex: 1; min-width: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; }
+.input-row .btn { flex: none; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field input {
   height: 44px; padding: 0 12px; width: 100%;

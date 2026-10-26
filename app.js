@@ -469,7 +469,7 @@ function formSettings() {
     owner: f.owner.value.trim(),
     repo: f.repo.value.trim(),
     branch: f.branch.value.trim() || "main",
-    token: f.token.value.trim(),
+    token: f.token.value.replace(/\s+/g, ""),
   };
 }
 
@@ -583,6 +583,20 @@ function init() {
   }));
 
   $("#testConn").addEventListener("click", testConnection);
+  $("#pasteToken").addEventListener("click", async () => {
+    const input = $("#settingsForm").token;
+    try {
+      const text = (await navigator.clipboard.readText()).replace(/\s+/g, "");
+      if (!text) throw new Error("leer");
+      input.value = text;
+      setTestResult(text.startsWith("github_pat_") || text.startsWith("ghp_")
+        ? "Token eingefügt – jetzt „Verbindung testen“." : "Eingefügt – sieht aber nicht wie ein GitHub-Token aus.",
+        text.startsWith("github_pat_") || text.startsWith("ghp_") ? "ok" : "err");
+    } catch {
+      input.focus();
+      setTestResult("Einfügen nicht erlaubt – tippe lange ins Feld und wähle „Einsetzen“.", "err");
+    }
+  });
   $("#settingsForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const s = formSettings();
@@ -614,7 +628,6 @@ function init() {
   // Erster Besuch über den Link: Einstellungen direkt öffnen, nur der Token fehlt noch
   if (fromHash && !isConfigured(app.settings) && !DEMO) {
     openSettings();
-    $("#settingsForm").token.focus();
   }
 }
 
